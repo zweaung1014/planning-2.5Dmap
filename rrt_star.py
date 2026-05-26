@@ -30,6 +30,9 @@ class RRTStar:
         search_radius: float = 0.5,
         max_iterations: int = 5000,
         goal_tolerance: float = 0.1,
+        max_jump_height: float = 0.5,
+        alpha_uphill: float = 1.0,
+        alpha_downhill: float = 0.5,
     ):
         self.map_env = map_env
         self.start = Node(x=start[0], y=start[1], cost=0.0)
@@ -38,6 +41,9 @@ class RRTStar:
         self.search_radius = search_radius
         self.max_iterations = max_iterations
         self.goal_tolerance = goal_tolerance
+        self.max_jump_height = max_jump_height
+        self.alpha_uphill = alpha_uphill
+        self.alpha_downhill = alpha_downhill
         self.nodes: list[Node] = [self.start]
         self._rng = np.random.default_rng()
 
@@ -105,9 +111,11 @@ class RRTStar:
         return neighbors
 
     def _collision_free(self, from_node: Node, to_node: Node) -> bool:
-        """Check if the straight-line path between two nodes is obstacle-free.
+        """Check if the path between two nodes is traversable.
 
-        Samples points along the line at half-cell resolution.
+        A path is blocked if:
+        - Any sampled point is an obstacle (z == -1)
+        - Any consecutive height difference exceeds max_jump_height
         """
         dx = to_node.x - from_node.x
         dy = to_node.y - from_node.y
@@ -116,21 +124,55 @@ class RRTStar:
             return not self.map_env.is_obstacle(from_node.x, from_node.y)
 
         n_samples = int(np.ceil(dist / (self.map_env.resolution * 0.5))) + 1
+        prev_z = self.map_env.get_elevation(from_node.x, from_node.y)
         for i in range(n_samples + 1):
             t = i / n_samples
             x = from_node.x + t * dx
             y = from_node.y + t * dy
             if self.map_env.is_obstacle(x, y):
                 return False
+            curr_z = self.map_env.get_elevation(x, y)
+            if abs(curr_z - prev_z) > self.max_jump_height:
+                return False
+            prev_z = curr_z
         return True
 
+    def _edge_cost(self, from_node: Node, to_node: Node) -> float:
+        """Compute the cost of traversing an edge, including elevation penalty.
+
+        Cost = euclidean_distance + sum of weighted height changes along the edge.
+        Uphill changes are weighted by alpha_uphill, downhill by alpha_downhill.
+        """
+        dx = to_node.x - from_node.x
+        dy = to_node.y - from_node.y
+        dist = np.hypot(dx, dy)
+        if dist < 1e-9:
+            return 0.0
+
+        n_samples = int(np.ceil(dist / (self.map_env.resolution * 0.5))) + 1
+        elevation_cost = 0.0
+        prev_z = self.map_env.get_elevation(from_node.x, from_node.y)
+        for i in range(1, n_samples + 1):
+            t = i / n_samples
+            x = from_node.x + t * dx
+            y = from_node.y + t * dy
+            curr_z = self.map_env.get_elevation(x, y)
+            dz = curr_z - prev_z
+            if dz > 0:
+                elevation_cost += self.alpha_uphill * dz
+            else:
+                elevation_cost += self.alpha_downhill * abs(dz)
+            prev_z = curr_z
+
+        return dist + elevation_cost
+
     def _choose_parent(self, neighbors: list[Node], nearest: Node, new_node: Node) -> Node:
-        """Choose the best parent for new_node from neighbors."""
+        """Choose the best parent for new_node from neighbors (height-aware cost)."""
         best_parent = nearest
-        best_cost = nearest.cost + self._distance(nearest, new_node)
+        best_cost = nearest.cost + self._edge_cost(nearest, new_node)
 
         for neighbor in neighbors:
-            cost = neighbor.cost + self._distance(neighbor, new_node)
+            cost = neighbor.cost + self._edge_cost(neighbor, new_node)
             if cost < best_cost and self._collision_free(neighbor, new_node):
                 best_parent = neighbor
                 best_cost = cost
@@ -140,9 +182,9 @@ class RRTStar:
         return new_node
 
     def _rewire(self, neighbors: list[Node], new_node: Node):
-        """Rewire neighbors through new_node if it reduces their cost."""
+        """Rewire neighbors through new_node if it reduces their cost (height-aware)."""
         for neighbor in neighbors:
-            new_cost = new_node.cost + self._distance(new_node, neighbor)
+            new_cost = new_node.cost + self._edge_cost(new_node, neighbor)
             if new_cost < neighbor.cost and self._collision_free(new_node, neighbor):
                 neighbor.parent = new_node
                 neighbor.cost = new_cost

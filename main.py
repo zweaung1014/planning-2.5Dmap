@@ -35,6 +35,9 @@ def main():
         search_radius=config.SEARCH_RADIUS,
         max_iterations=config.MAX_ITERATIONS,
         goal_tolerance=config.GOAL_TOLERANCE,
+        max_jump_height=config.MAX_JUMP_HEIGHT,
+        alpha_uphill=config.ALPHA_UPHILL,
+        alpha_downhill=config.ALPHA_DOWNHILL,
     )
     path = planner.plan()
 
