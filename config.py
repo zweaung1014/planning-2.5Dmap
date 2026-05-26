@@ -4,7 +4,7 @@
 # Map parameters
 MAP_SIZE_X = 5.0  # meters
 MAP_SIZE_Y = 5.0  # meters
-CELL_RESOLUTION = 0.05  # meters per cell (5 cm)
+CELL_RESOLUTION = 0.2  # meters per cell (10 cm)
 
 # Robot start position (x, y) in meters
 START = (0.0, 0.0)

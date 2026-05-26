@@ -22,17 +22,36 @@ class Visualizer:
         self.ax.set_title("RRT* Path Planning on 2.5D Map")
 
     def draw_map(self):
-        """Draw the map grid, showing obstacles in black."""
-        obstacle_mask = self.map_env.grid == Map2D5.OBSTACLE
-        self.ax.imshow(
-            obstacle_mask,
-            extent=[0, self.map_env.size_x, 0, self.map_env.size_y],
-            origin="lower",
-            cmap="Greys",
-            alpha=0.3,
-            vmin=0,
-            vmax=1,
-        )
+        """Draw the map grid with cell boundaries and height values."""
+        res = self.map_env.resolution
+        rows = self.map_env.rows
+        cols = self.map_env.cols
+
+        # Draw grid lines
+        for i in range(rows + 1):
+            self.ax.axhline(i * res, color="gray", linewidth=0.3, alpha=0.5)
+        for j in range(cols + 1):
+            self.ax.axvline(j * res, color="gray", linewidth=0.3, alpha=0.5)
+
+        # Draw cells: color obstacles black, show height text in each cell
+        font_size = max(3, min(7, int(200 / max(rows, cols))))
+        for r in range(rows):
+            for c in range(cols):
+                z = self.map_env.grid[r, c]
+                cx = (c + 0.5) * res
+                cy = (r + 0.5) * res
+                if z == Map2D5.OBSTACLE:
+                    rect = plt.Rectangle(
+                        (c * res, r * res), res, res,
+                        facecolor="black", alpha=0.7,
+                    )
+                    self.ax.add_patch(rect)
+                else:
+                    self.ax.text(
+                        cx, cy, f"{z:.1f}",
+                        ha="center", va="center",
+                        fontsize=font_size, color="dimgray", alpha=0.8,
+                    )
 
     def draw_tree(self, nodes: list[Node]):
         """Draw the RRT* tree edges."""

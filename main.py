@@ -17,6 +17,15 @@ def main():
     # (Optional) Add obstacles here for testing, e.g.:
     # env_map.set_obstacle_region(2.0, 2.0, 3.0, 3.0)
 
+    # Set elevation regions
+    r_min, c_min = env_map.world_to_grid(2.0, 2.4)
+    r_max, c_max = env_map.world_to_grid(3.0, 3.0)
+    env_map.grid[r_min:r_max + 1, c_min:c_max + 1] = 0.4
+
+    r_min, c_min = env_map.world_to_grid(2.0, 1.8)
+    r_max, c_max = env_map.world_to_grid(3.0, 2.4)
+    env_map.grid[r_min:r_max + 1, c_min:c_max + 1] = 0.2
+
     # Plan path
     planner = RRTStar(
         map_env=env_map,
