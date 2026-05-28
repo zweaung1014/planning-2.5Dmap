@@ -1,8 +1,8 @@
-"""Entry point for the RRT* 2.5D map planning simulation."""
+"""Entry point for the A* 2.5D map planning simulation."""
 
 import config
 from map2d5 import Map2D5
-from rrt_star import RRTStar
+from astar_planner import AStarPlanner
 from visualizer import Visualizer
 
 
@@ -27,14 +27,10 @@ def main():
     env_map.grid[r_min:r_max + 1, c_min:c_max + 1] = 0.2
 
     # Plan path
-    planner = RRTStar(
+    planner = AStarPlanner(
         map_env=env_map,
         start=config.START,
         goal=config.GOAL,
-        step_size=config.STEP_SIZE,
-        search_radius=config.SEARCH_RADIUS,
-        max_iterations=config.MAX_ITERATIONS,
-        goal_tolerance=config.GOAL_TOLERANCE,
         max_jump_height=config.MAX_JUMP_HEIGHT,
         alpha_uphill=config.ALPHA_UPHILL,
         alpha_downhill=config.ALPHA_DOWNHILL,
@@ -49,7 +45,6 @@ def main():
     # Visualize
     vis = Visualizer(env_map)
     vis.draw_map()
-    vis.draw_tree(planner.nodes)
     if path:
         vis.draw_path(path)
     vis.draw_start_goal(config.START, config.GOAL)
