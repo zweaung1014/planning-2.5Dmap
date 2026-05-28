@@ -14,5 +14,5 @@ GOAL = (3.2, 1.5)
 
 # Height-aware planning parameters
 MAX_JUMP_HEIGHT = 0.5  # meters; edges with dz > this are impassable
-ALPHA_UPHILL = 1.0  # cost weight for uphill elevation changes
+ALPHA_UPHILL = 3  # cost weight for uphill elevation changes
 ALPHA_DOWNHILL = 0.5  # cost weight for downhill elevation changes (landing)
